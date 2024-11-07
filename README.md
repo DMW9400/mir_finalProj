@@ -15,10 +15,12 @@ Goals:
   Cat Boost : CatBoost implements decision trees and restricts the features split per level to one, which help in decreasing prediction time. It also handles categorical features effectively.
   
   Gradient Boost : In Gradient Boost an decision trees are implemented in a sequential manner which enhance the performance.
+
+  
   
   JC be responsible for K-Neighbors Classifier, Decision Tree Classifier
 
-  
+
 - 11/14/24:
   - 
 - 11/21/24:
