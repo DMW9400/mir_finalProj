@@ -41,7 +41,7 @@ random forest, and Support Vector Machines provided by the SciKit framework Deep
 - SciKit Learn, along with native Python data visualization
 - TensorBoard for deep learning results visualization
 
-Methodlogy: 
+## Methodlogy <a name="Methodology">
 
 Exploratory Data Analysis 
 Data Preprocessing
