@@ -13,6 +13,7 @@ Table of Contents:
   - pick ml algorithms
 
     - JC
+      - Data Analysis & Visualization
       - K-Neighbors Classifier :  KNeighborsClassifier looks for topmost n_neighbors using different distance methods like Euclidean distance.
       - Decision Tree Classifier : In Decision tree each node is trained by splitting the data is continuously according to a certain parameter.
     - Ciara
