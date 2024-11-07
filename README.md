@@ -16,6 +16,9 @@ Goals:
   
   Gradient Boost : In Gradient Boost an decision trees are implemented in a sequential manner which enhance the performance.
   
+  JC be responsible for K-Neighbors Classifier, Decision Tree Classifier
+
+  
 - 11/14/24:
   - 
 - 11/21/24:
