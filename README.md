@@ -44,9 +44,9 @@ random forest, and Support Vector Machines provided by the SciKit framework Deep
 
 ## Methodlogy <a name="Methodology">
 
-Exploratory Data Analysis 
-Data Preprocessing
-modle training
-Evaluation
+  -Exploratory Data Analysis 
+  -Data Preprocessing
+  -modle training
+  -Evaluation
 
 
