@@ -3,19 +3,6 @@
 Goals:
 - 11/7/24:
   - pick ml algorithms
-  
-  K-Neighbors Classifier :  KNeighborsClassifier looks for topmost n_neighbors using different distance methods like Euclidean distance.
-  
-  Decision Tree Classifier : In Decision tree each node is trained by splitting the data is continuously according to a certain parameter.
-  
-  Random Forest : Random Forest Classifier fits a number of decision tree classifiers on many sub-samples of the dataset and then use the average to improve the results.
-  
-  Logistics Regression : Logistic Regression is a regression model that predicts the probability of a given data belongs to the particular category or not.
-  
-  Cat Boost : CatBoost implements decision trees and restricts the features split per level to one, which help in decreasing prediction time. It also handles categorical features effectively.
-  
-  Gradient Boost : In Gradient Boost an decision trees are implemented in a sequential manner which enhance the performance.
-  
 - 11/14/24:
   - 
 - 11/21/24:
