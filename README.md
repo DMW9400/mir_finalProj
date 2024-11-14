@@ -23,7 +23,6 @@ Table of Contents:
       - Gradient Boost : In Gradient Boost an decision trees are implemented in a sequential manner which enhance the performance.
   
 - 11/14/24:
-  - Part Allowcation
 - 11/21/24:
 
 ## Proposal <a name="Proposal">
