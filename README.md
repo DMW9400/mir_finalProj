@@ -5,7 +5,6 @@ Goals:
   - pick ml algorithms
 
     - JC
-      - Data Analysis & Visualization
       - K-Neighbors Classifier :  KNeighborsClassifier looks for topmost n_neighbors using different distance methods like Euclidean distance.
       - Decision Tree Classifier : In Decision tree each node is trained by splitting the data is continuously according to a certain parameter.
     - Ciara
@@ -14,11 +13,9 @@ Goals:
     - Matt
       - Cat Boost : CatBoost implements decision trees and restricts the features split per level to one, which help in decreasing prediction time. It also handles categorical features effectively.
       - Gradient Boost : In Gradient Boost an decision trees are implemented in a sequential manner which enhance the performance.
-
-
   
 - 11/14/24:
-  - 
+  - Part Allowcation
 - 11/21/24:
 
 # Proposal
