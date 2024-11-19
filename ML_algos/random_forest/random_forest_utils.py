@@ -7,14 +7,21 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report
 from sklearn.model_selection import train_test_split
 import random
+from scipy.interpolate import BarycentricInterpolator
 
 def rf_split_data(tracks, ratio=.3):
     X = []
     y = []
+    maxlen = 0
     for t in tracks:
         track = tracks[t]
-        X.append(track.audio)
+        X.append(track.audio[0])
         y.append(track.genre)
+        maxlen = max(len(track.audio[0]), maxlen)
+
+    # temp... add interpolation?
+    for i in range(len(X)):
+        X[i] = np.pad(X[i], (0, maxlen - len(X[i])), mode='constant', constant_values=0)
     # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.30)
     return train_test_split(X, y, test_size = 0.30)
 
@@ -32,6 +39,9 @@ def rf_split_data(tracks, ratio=.3):
     #     test[genre] = subtracks
 
     # return train, test
+
+def rf_interpolate(X):
+    return BarycentricInterpolator(X)
 
 def rf_gen(n_estimators=100, random_state=42):
     return RandomForestClassifier(n_estimators=n_estimators, random_state=random_state)
