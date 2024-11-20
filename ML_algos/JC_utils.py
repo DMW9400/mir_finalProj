@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import random
 from sklearn.metrics import f1_score 
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.tree import DecisionTreeClassifier
 
 def split_data(tracks):
     """
@@ -93,7 +94,6 @@ def compute_mfccs(y, sr, n_fft=2048, hop_length=512, n_mels=128, n_mfcc=20):
 
     return mfccs
 
-
 def get_stats(features):
     """
     Compute summary statistics (mean and standard deviation) over a matrix of MFCCs.
@@ -150,78 +150,74 @@ def normalize(features, features_mean, features_std):
     # YOUR CODE HERE
 
 
+import audioread
+import numpy as np
+import scipy.signal
+from scipy.io.wavfile import write
+
 def get_features_and_labels(track_list, n_fft=2048, hop_length=512, n_mels=128, n_mfcc=20):
     """
-    Our features are going to be the `mean` and `std` MFCC values of a track concatenated 
-    into a single vector of size `2*n_mfcss`. 
-
-    Create a function `get_features_and_labels()` such that extracts the features 
-    and labels for all tracks in the dataset, such that for each audio file it obtains a 
-    single feature vector. This function should do the following:
-
-    For each track in the collection (e.g. training split),
-        1. Compute the MFCCs of the input audio, and remove the first (0th) coeficient.
-        2. Compute the summary statistics of the MFCCs over time:
-            1. Find the mean and standard deviation for each MFCC feature (2 values for each)
-            2. Stack these statistics into single 1-d vector of lenght ( 2 * (n_mfccs - 1) )
-        3. Get the labels. The label of a track can be accessed by calling `track.instrument_id`.
-    Return the labels and features as `np.arrays`.
+    Extracts features (mean and std MFCC values) and labels for all tracks using audioread.
 
     Parameters
     ----------
     track_list : list
-                 list of dataset.track objects from Medley_solos_DB dataset
+        List of dataset.track objects, where each object contains `audio_path` and `genre`.
     n_fft : int
-                 Number of points for computing the fft
+        Number of points for computing the FFT.
     hop_length : int
-                 Number of samples to advance between frames
+        Number of samples to advance between frames.
     n_mels : int
-             Number of mel frequency bands to use
+        Number of mel frequency bands to use.
     n_mfcc : int
-             Number of mfcc's to compute
+        Number of MFCCs to compute.
 
     Returns
     -------
-    feature_matrix: np.array (len(track_list), 2*(n_mfcc - 1))
-        The features for each track, stacked into a matrix.
-    label_array: np.array (len(track_list))
-        The label for each track, represented as integers
+    feature_matrix : np.array
+        Matrix of features for each track, shape (len(track_list), 2 * (n_mfcc - 1)).
+    label_array : np.array
+        Array of labels for each track.
     """
-
     features = []
     labels = []
-    
-    # Iterate through each track in the track list
+
     for track in track_list:
-        # Load the audio file using the audio path from the track object
-        y, sr = librosa.load(track.audio_path, sr=None)
+        try:
+            # Load audio with audioread
+            with audioread.audio_open(track.audio_path) as f:
+                sr = f.samplerate  # Sampling rate
+                audio = np.frombuffer(b"".join([buf for buf in f]), dtype=np.int16)
+                audio = audio.astype(np.float32) / np.max(np.abs(audio))  # Normalize to [-1, 1]
 
-        # Compute MFCCs (remove the 0th coefficient)
-        #mfccs = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=n_mfcc, n_fft=n_fft, hop_length=hop_length)
-        mfccs = compute_mfccs(y=y, sr=sr, n_fft=n_fft, hop_length=hop_length, n_mels=n_mels, n_mfcc=n_mfcc)
-        mfccs = mfccs[1:, :]  # Remove the 0th coefficient
+            # Ensure mono signal
+            if len(audio.shape) > 1:
+                audio = np.mean(audio, axis=1)
 
-        # Compute mean and standard deviation for each MFCC coefficient
-        #mfcc_mean = np.mean(mfccs, axis=1)
-        #mfcc_std = np.std(mfccs, axis=1)
-        feature_mean, feature_std = get_stats(mfccs)
+            # Compute MFCCs
+            mfccs = librosa.feature.mfcc(y=audio, sr=sr, n_mfcc=n_mfcc, n_fft=n_fft, hop_length=hop_length)
+            mfccs = mfccs[1:, :]  # Remove the 0th coefficient
 
-        # Concatenate the mean and standard deviation into a single feature vector
-        feature_vector = np.concatenate((feature_mean, feature_std))
+            # Compute mean and std
+            feature_mean = np.mean(mfccs, axis=1)
+            feature_std = np.std(mfccs, axis=1)
 
-        # Append the feature vector to the list of features
-        features.append(feature_vector)
+            # Concatenate features
+            feature_vector = np.concatenate((feature_mean, feature_std))
 
-        # Get the label (instrument_id) for the current track
-        labels.append(track.instrument_id)
-    
+            # Append feature vector and label
+            features.append(feature_vector)
+            labels.append(track.genre)
+
+        except Exception as e:
+            print(f"Skipping {track.audio_path} due to error: {e}")
+            continue
+
     # Convert lists to numpy arrays
     feature_matrix = np.array(features)
     label_array = np.array(labels)
 
     return feature_matrix, label_array
-    # Hint: re-use functions from previous parts (e.g. compute_mfcss and get_stats)
-    # YOUR CODE HERE
 
 
 
@@ -292,4 +288,64 @@ def fit_knn(train_features, train_labels, validation_features, validation_labels
     return knn_clf, best_k
     
     
+def fit_decision_tree(train_features, train_labels, validation_features, validation_labels, depths=[3, 5, 10, 20, None]):
+    """
+    Fit a Decision Tree Classifier and choose the depth which maximizes the
+    *f-measure* on the validation set.
 
+    Plot the f-measure on the validation set as a function of max_depth.
+
+    Parameters
+    ----------
+    train_features : np.array (n_train_examples, n_features)
+        Training feature matrix.
+    train_labels : np.array (n_train_examples)
+        Training label array.
+    validation_features : np.array (n_validation_examples, n_features)
+        Validation feature matrix.
+    validation_labels : np.array (n_validation_examples)
+        Validation label array.
+    depths : list of int or None
+        Maximum depth values to evaluate using the validation set.
+
+    Returns
+    -------
+    dt_clf : scikit-learn classifier
+        Trained Decision Tree classifier with the best max_depth.
+    best_depth : int or None
+        The max_depth which gave the best performance.
+    """
+    
+    f1_scores = []  # Initialize an empty list to store f1 scores
+    best_f1 = 0
+    best_depth = None
+    dt_clf = None
+
+    for depth in depths:
+        # Initialize and fit the Decision Tree classifier
+        dt = DecisionTreeClassifier(max_depth=depth, random_state=42)
+        dt.fit(train_features, train_labels)
+
+        # Predict labels for the validation set
+        val_predictions = dt.predict(validation_features)
+
+        # Calculate the f1 score on the validation set
+        f1 = f1_score(validation_labels, val_predictions, average='weighted')
+        f1_scores.append(f1)  # Append the f1 score to the list
+
+        # Update the best depth and classifier if the current f1 score is better
+        if f1 > best_f1:
+            best_f1 = f1
+            best_depth = depth
+            dt_clf = dt
+
+    # Plot the f1 score as a function of max_depth
+    plt.figure(figsize=(8, 6))
+    plt.plot([str(d) for d in depths], f1_scores, marker='o')
+    plt.title("F1-Measure vs Max Depth (Validation Set)")
+    plt.xlabel("Max Depth")
+    plt.ylabel("F1-Measure")
+    plt.grid(True)
+    plt.show()
+
+    return dt_clf, best_depth
