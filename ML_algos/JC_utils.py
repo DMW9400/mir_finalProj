@@ -46,8 +46,8 @@ def split_data(tracks):
 
         # Calculate split indices
         total_tracks = len(genre_tracks)
-        train_end = int(total_tracks * 0.6)  # 60% for training
-        validate_end = int(total_tracks * 0.9)  # Next 30% for validation
+        train_end = int(total_tracks * 0.6)  
+        validate_end = int(total_tracks * 0.3)  
 
         # Split the genre tracks
         tracks_train += genre_tracks[:train_end]
@@ -288,12 +288,12 @@ def fit_knn(train_features, train_labels, validation_features, validation_labels
     return knn_clf, best_k
     
     
+
+from sklearn.model_selection import cross_val_score
 def fit_decision_tree(train_features, train_labels, validation_features, validation_labels, depths=[3, 5, 10, 20, None]):
     """
     Fit a Decision Tree Classifier and choose the depth which maximizes the
-    *f-measure* on the validation set.
-
-    Plot the f-measure on the validation set as a function of max_depth.
+    *f-measure* on the validation set using cross-validation.
 
     Parameters
     ----------
@@ -315,34 +315,42 @@ def fit_decision_tree(train_features, train_labels, validation_features, validat
     best_depth : int or None
         The max_depth which gave the best performance.
     """
-    
-    f1_scores = []  # Initialize an empty list to store f1 scores
+
+    f1_scores = []  # To store F1 scores
     best_f1 = 0
     best_depth = None
     dt_clf = None
 
     for depth in depths:
-        # Initialize and fit the Decision Tree classifier
-        dt = DecisionTreeClassifier(max_depth=depth, random_state=42)
-        dt.fit(train_features, train_labels)
+        # Initialize the Decision Tree with additional regularization
+        dt = DecisionTreeClassifier(
+            max_depth=depth, 
+            min_samples_split=5, 
+            min_samples_leaf=2, 
+            class_weight="balanced", 
+            random_state=42
+        )
 
-        # Predict labels for the validation set
-        val_predictions = dt.predict(validation_features)
+        # Perform cross-validation on the training set
+        cv_f1_scores = cross_val_score(dt, train_features, train_labels, cv=5, scoring='f1_weighted')
 
-        # Calculate the f1 score on the validation set
-        f1 = f1_score(validation_labels, val_predictions, average='weighted')
-        f1_scores.append(f1)  # Append the f1 score to the list
+        # Compute the mean F1 score from cross-validation
+        mean_f1 = np.mean(cv_f1_scores)
+        f1_scores.append(mean_f1)
 
-        # Update the best depth and classifier if the current f1 score is better
-        if f1 > best_f1:
-            best_f1 = f1
+        # Check if this depth gives the best F1 score
+        if mean_f1 > best_f1:
+            best_f1 = mean_f1
             best_depth = depth
-            dt_clf = dt
+            dt_clf = dt  # Save the classifier with the best depth
 
-    # Plot the f1 score as a function of max_depth
+    # Train the best model on the full training set
+    dt_clf.fit(train_features, train_labels)
+
+    # Plot the F1 scores as a function of max_depth
     plt.figure(figsize=(8, 6))
     plt.plot([str(d) for d in depths], f1_scores, marker='o')
-    plt.title("F1-Measure vs Max Depth (Validation Set)")
+    plt.title("F1-Measure vs Max Depth (Validation Set with Cross-Validation)")
     plt.xlabel("Max Depth")
     plt.ylabel("F1-Measure")
     plt.grid(True)
