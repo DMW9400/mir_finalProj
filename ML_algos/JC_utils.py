@@ -45,9 +45,10 @@ def split_data(tracks):
         random.shuffle(genre_tracks)
 
         # Calculate split indices
+        # Calculate split indices
         total_tracks = len(genre_tracks)
-        train_end = int(total_tracks * 0.6)  
-        validate_end = int(total_tracks * 0.3)  
+        train_end = int(total_tracks * 0.6)  # 70% for training
+        validate_end = train_end + int(total_tracks * 0.1)  # 15% for validation
 
         # Split the genre tracks
         tracks_train += genre_tracks[:train_end]
@@ -155,9 +156,103 @@ import numpy as np
 import scipy.signal
 from scipy.io.wavfile import write
 
+# def get_features_and_labels(track_list, n_fft=2048, hop_length=512, n_mels=128, n_mfcc=20):
+#     """
+#     Extracts features (mean and std MFCC values) and labels for all tracks using audioread.
+
+#     Parameters
+#     ----------
+#     track_list : list
+#         List of dataset.track objects, where each object contains `audio_path` and `genre`.
+#     n_fft : int
+#         Number of points for computing the FFT.
+#     hop_length : int
+#         Number of samples to advance between frames.
+#     n_mels : int
+#         Number of mel frequency bands to use.
+#     n_mfcc : int
+#         Number of MFCCs to compute.
+
+#     Returns
+#     -------
+#     feature_matrix : np.array
+#         Matrix of features for each track, shape (len(track_list), 2 * (n_mfcc - 1)).
+#     label_array : np.array
+#         Array of labels for each track.
+#     """
+#     features = []
+#     labels = []
+
+#     for track in track_list:
+#         try:
+#             # Load audio with audioread
+#             with audioread.audio_open(track.audio_path) as f:
+#                 sr = f.samplerate  # Sampling rate
+#                 audio = np.frombuffer(b"".join([buf for buf in f]), dtype=np.int16)
+#                 audio = audio.astype(np.float32) / np.max(np.abs(audio))  # Normalize to [-1, 1]
+
+#             # Ensure mono signal
+#             if len(audio.shape) > 1:
+#                 audio = np.mean(audio, axis=1)
+
+#             # Compute MFCCs
+#             mfccs = librosa.feature.mfcc(y=audio, sr=sr, n_mfcc=n_mfcc, n_fft=n_fft, hop_length=hop_length)
+#             mfccs = mfccs[1:, :]  # Remove the 0th coefficient
+
+#             # Compute mean and std
+#             feature_mean = np.mean(mfccs, axis=1)
+#             feature_std = np.std(mfccs, axis=1)
+
+#             # Concatenate features
+#             feature_vector = np.concatenate((feature_mean, feature_std))
+
+#             # Append feature vector and label
+#             features.append(feature_vector)
+#             labels.append(track.genre)
+
+#         except Exception as e:
+#             print(f"Skipping {track.audio_path} due to error: {e}")
+#             continue
+
+#     # Convert lists to numpy arrays
+#     feature_matrix = np.array(features)
+#     label_array = np.array(labels)
+
+#     return feature_matrix, label_array
+
+def compute_chroma_stft(y, sr, n_fft=2048, hop_length=512):
+    """Compute chroma short-time Fourier transform."""
+    chroma = librosa.feature.chroma_stft(y=y, sr=sr, n_fft=n_fft, hop_length=hop_length)
+    return chroma
+
+def compute_rms_mean(y, sr, frame_length=2048, hop_length=512):
+    """Compute mean root mean square (RMS) energy."""
+    rms = librosa.feature.rms(y=y, frame_length=frame_length, hop_length=hop_length)
+    return rms
+
+def compute_spectral_centroid(y, sr, n_fft=2048, hop_length=512):
+    """Compute spectral centroid."""
+    centroid = librosa.feature.spectral_centroid(y=y, sr=sr, n_fft=n_fft, hop_length=hop_length)
+    return centroid
+
+def compute_spectral_bandwidth(y, sr, n_fft=2048, hop_length=512):
+    """Compute spectral bandwidth."""
+    bandwidth = librosa.feature.spectral_bandwidth(y=y, sr=sr, n_fft=n_fft, hop_length=hop_length)
+    return bandwidth
+
+def compute_rolloff(y, sr, n_fft=2048, hop_length=512, roll_percent=0.85):
+    """Compute spectral roll-off."""
+    rolloff = librosa.feature.spectral_rolloff(y=y, sr=sr, n_fft=n_fft, hop_length=hop_length, roll_percent=roll_percent)
+    return rolloff
+
+def compute_zero_crossing_rate(y, hop_length=512):
+    """Compute zero-crossing rate."""
+    zcr = librosa.feature.zero_crossing_rate(y, hop_length=hop_length)
+    return zcr
+
 def get_features_and_labels(track_list, n_fft=2048, hop_length=512, n_mels=128, n_mfcc=20):
     """
-    Extracts features (mean and std MFCC values) and labels for all tracks using audioread.
+    Extracts features (MFCCs, chroma, RMS, spectral centroid, bandwidth, roll-off, ZCR) and labels for all tracks.
 
     Parameters
     ----------
@@ -175,7 +270,7 @@ def get_features_and_labels(track_list, n_fft=2048, hop_length=512, n_mels=128, 
     Returns
     -------
     feature_matrix : np.array
-        Matrix of features for each track, shape (len(track_list), 2 * (n_mfcc - 1)).
+        Matrix of features for each track, shape (len(track_list), feature_dimension).
     label_array : np.array
         Array of labels for each track.
     """
@@ -184,26 +279,41 @@ def get_features_and_labels(track_list, n_fft=2048, hop_length=512, n_mels=128, 
 
     for track in track_list:
         try:
-            # Load audio with audioread
-            with audioread.audio_open(track.audio_path) as f:
-                sr = f.samplerate  # Sampling rate
-                audio = np.frombuffer(b"".join([buf for buf in f]), dtype=np.int16)
-                audio = audio.astype(np.float32) / np.max(np.abs(audio))  # Normalize to [-1, 1]
+            # Load audio
+            y, sr = librosa.load(track.audio_path, sr=None)
 
-            # Ensure mono signal
-            if len(audio.shape) > 1:
-                audio = np.mean(audio, axis=1)
+            # Compute features
+            mfccs = compute_mfccs(y, sr, n_fft=n_fft, hop_length=hop_length, n_mfcc=n_mfcc)
+            chroma = compute_chroma_stft(y, sr, n_fft=n_fft, hop_length=hop_length)
+            rms = compute_rms_mean(y, sr)
+            centroid = compute_spectral_centroid(y, sr, n_fft=n_fft, hop_length=hop_length)
+            bandwidth = compute_spectral_bandwidth(y, sr, n_fft=n_fft, hop_length=hop_length)
+            rolloff = compute_rolloff(y, sr, n_fft=n_fft, hop_length=hop_length)
+            zcr = compute_zero_crossing_rate(y, hop_length=hop_length)
 
-            # Compute MFCCs
-            mfccs = librosa.feature.mfcc(y=audio, sr=sr, n_mfcc=n_mfcc, n_fft=n_fft, hop_length=hop_length)
-            mfccs = mfccs[1:, :]  # Remove the 0th coefficient
-
-            # Compute mean and std
-            feature_mean = np.mean(mfccs, axis=1)
-            feature_std = np.std(mfccs, axis=1)
+            # Summarize features using mean and variance
+            mfccs_mean = np.mean(mfccs, axis=0)
+            mfccs_var = np.var(mfccs, axis=0)
+            chroma_mean = np.mean(chroma, axis=1)
+            chroma_var = np.var(chroma, axis=1)
+            rms_mean = np.mean(rms)
+            rms_var = np.var(rms)
+            centroid_mean = np.mean(centroid)
+            centroid_var = np.var(centroid)
+            bandwidth_mean = np.mean(bandwidth)
+            bandwidth_var = np.var(bandwidth)
+            rolloff_mean = np.mean(rolloff)
+            rolloff_var = np.var(rolloff)
+            zcr_mean = np.mean(zcr)
+            zcr_var = np.var(zcr)
 
             # Concatenate features
-            feature_vector = np.concatenate((feature_mean, feature_std))
+            feature_vector = np.concatenate((
+                mfccs_mean, mfccs_var, chroma_mean, chroma_var,
+                [rms_mean, rms_var, centroid_mean, centroid_var, 
+                 bandwidth_mean, bandwidth_var, rolloff_mean, rolloff_var, 
+                 zcr_mean, zcr_var]
+            ))
 
             # Append feature vector and label
             features.append(feature_vector)
@@ -218,8 +328,6 @@ def get_features_and_labels(track_list, n_fft=2048, hop_length=512, n_mels=128, 
     label_array = np.array(labels)
 
     return feature_matrix, label_array
-
-
 
 def fit_knn(train_features, train_labels, validation_features, validation_labels, ks=[1, 5, 10, 50]):
     """
@@ -323,13 +431,20 @@ def fit_decision_tree(train_features, train_labels, validation_features, validat
 
     for depth in depths:
         # Initialize the Decision Tree with additional regularization
-        dt = DecisionTreeClassifier(
-            max_depth=depth, 
-            min_samples_split=5, 
-            min_samples_leaf=2, 
-            class_weight="balanced", 
-            random_state=42
-        )
+        dt = DecisionTreeClassifier(criterion='gini',
+            splitter='best', 
+            max_depth=None, 
+            min_samples_split=2, 
+            min_samples_leaf=1, 
+            min_weight_fraction_leaf=0.0, 
+            max_features=None, 
+            random_state=None, 
+            max_leaf_nodes=None, 
+            min_impurity_decrease=0.0, 
+            class_weight=None, 
+            ccp_alpha=0.0, 
+            monotonic_cst=None)
+        
 
         # Perform cross-validation on the training set
         cv_f1_scores = cross_val_score(dt, train_features, train_labels, cv=5, scoring='f1_weighted')
