@@ -45,7 +45,6 @@ def split_data(tracks):
         random.shuffle(genre_tracks)
 
         # Calculate split indices
-        # Calculate split indices
         total_tracks = len(genre_tracks)
         train_end = int(total_tracks * 0.6)  # 70% for training
         validate_end = train_end + int(total_tracks * 0.1)  # 15% for validation
@@ -56,9 +55,6 @@ def split_data(tracks):
         tracks_test += genre_tracks[validate_end:]
 
     return tracks_train, tracks_validate, tracks_test
-
-    
-
 
 def compute_mfccs(y, sr, n_fft=2048, hop_length=512, n_mels=128, n_mfcc=20):
     """
@@ -124,7 +120,6 @@ def get_stats(features):
     # Hint: use numpy mean and std functions, and watch out for the axis.
     # YOUR CODE HERE
 
-
 def normalize(features, features_mean, features_std):
     """
     Normalize (standardize) a set of features using the given mean and standard deviation.
@@ -149,7 +144,6 @@ def normalize(features, features_mean, features_std):
     return features_norm
 
     # YOUR CODE HERE
-
 
 import audioread
 import numpy as np
