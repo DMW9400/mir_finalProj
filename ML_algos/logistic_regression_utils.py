@@ -5,6 +5,6 @@ class logistic_regression(genre_classification):
     def __init__(self):
         print("initializing logistic regression classifier")
         
-    def gen(self, n_estimators=100, random_state=42):
-        self.model = LogisticRegression(max_iter=500)
+    def gen(self, random_state=42, solver = 'lbfgs'):
+        self.model = LogisticRegression(solver=solver, max_iter=5000, random_state=random_state)
         return self.model
