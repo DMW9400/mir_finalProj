@@ -427,7 +427,7 @@ def fit_decision_tree(train_features, train_labels, validation_features, validat
         # Initialize the Decision Tree with additional regularization
         dt = DecisionTreeClassifier(criterion='gini',
             splitter='best', 
-            max_depth=None, 
+            max_depth=depth, 
             min_samples_split=2, 
             min_samples_leaf=1, 
             min_weight_fraction_leaf=0.0, 
