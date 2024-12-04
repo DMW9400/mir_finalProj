@@ -6,5 +6,5 @@ class logistic_regression(genre_classification):
         print("initializing logistic regression classifier")
         
     def gen(self, random_state=42, solver = 'lbfgs'):
-        self.model = LogisticRegression(solver=solver, max_iter=5000, random_state=random_state)
+        self.model = LogisticRegression(solver=solver, max_iter=10000, random_state=random_state)
         return self.model
